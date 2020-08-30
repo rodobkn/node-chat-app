@@ -1,8 +1,10 @@
 const express = require('express')
+require('./db/mongoose')
 const path = require('path')
 const http = require('http')
 const socketio = require('socket.io')
 const Filter = require('bad-words')
+const Message = require('./models/message')
 const {generateMessage, generateLocationMessage} = require('./utils/messages')
 const { addUser, removeUser, getUser, getUsersInRoom } = require('./utils/users')
 
@@ -10,7 +12,7 @@ const app = express()
 const server = http.createServer(app)  //This is done by exprexx automatically, but now we are hardcoding in order to use WebSockets ina a nice way
 const io = socketio(server)   //It is necessary to pass to socketio the server, so for this reasons we stored the server in a variable before
 
-const port = process.env.PORT || 3000
+const port = process.env.PORT
 const publicDirectoryPath = path.join(__dirname, '../public')
 
 //We are using the publicDirectoryPath now, before we only set up the variable in  order to use now.
@@ -47,7 +49,7 @@ io.on('connection', (socket) => {
     })
 
     //We wait that the client sends a message with the event 'sendMessage', in order to trigger the function down below
-    socket.on('sendMessage', (message, callback) => {
+    socket.on('sendMessage', async (message, callback) => {
         const user = getUser(socket.id)   //We are looking for the user, in order to know what room he is
         const filter = new Filter()   //We are creating an object to see if the message contains profanity
 
@@ -56,7 +58,15 @@ io.on('connection', (socket) => {
         }
 
         //io.emit('message', generateMessage(message))   //We are sending to ALL the clients the message that was received
-        
+      
+        //AQUI ES DONDE DEBES GUARDAR LOS MENSAJES-------------------------HOLAAAA
+        const messageToStore = new Message({ text: message })
+        try {
+            await messageToStore.save()
+        } catch (e) {
+            console.log('There was an error storing the message in the db')
+        }
+
         io.to(user.room).emit('message', generateMessage(user.username, message))  // 'io.to().emit'  -> That allow us to send a message to all the users(include the current user) of a SPECIFIC room
         callback()   //We are running the acknowledgement function provided by the client, in order to know that we received the data, and we delivered the data.
     })
