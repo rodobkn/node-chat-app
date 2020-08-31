@@ -55,9 +55,14 @@ const getUsersInRoom = (room) => {
     return users.filter((user) => user.room === room)   //Here we are storing in an array all the users where we return true. If we don't have any match, the array will be empty
 }
 
+const getEveryUser = () => {
+    return users
+}
+
 module.exports = {
     addUser,
     removeUser,
     getUser,
-    getUsersInRoom
+    getUsersInRoom,
+    getEveryUser
 }

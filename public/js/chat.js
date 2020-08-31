@@ -76,6 +76,11 @@ socket.on('roomData', ({room, users}) => {
     document.querySelector('#sidebar').innerHTML = html   //Then we add the data inside of 'html' to render in the div with id=sidebar
 })
 
+socket.on('bannedUser', (receivedObject) => {
+    alert("ojito")
+    location.href="/"
+})
+
 //We add a listener to a form with id #message-form.
 $messageForm.addEventListener('submit', (e) => {
     e.preventDefault()  //We prevent that the page update by itself

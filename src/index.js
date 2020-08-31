@@ -6,7 +6,7 @@ const socketio = require('socket.io')
 const Filter = require('bad-words')
 const Message = require('./models/message')
 const {generateMessage, generateLocationMessage} = require('./utils/messages')
-const { addUser, removeUser, getUser, getUsersInRoom } = require('./utils/users')
+const { addUser, removeUser, getUser, getUsersInRoom, getEveryUser } = require('./utils/users')
 
 const app = express()
 const server = http.createServer(app)  //This is done by exprexx automatically, but now we are hardcoding in order to use WebSockets ina a nice way
@@ -57,6 +57,21 @@ io.on('connection', (socket) => {
             return callback('Profanity is not allowed')   //We are checking if the message contains bad words. Then we call the acknowledgement function in order to alert to the client that the message contained bad words. Besides we add a return statement, because we don't want to send the message to all the users
         }
 
+        //------------------COMMANDS IN CHAT (BAN)-----------------------------------
+
+        arrayBan = message.trim().split(' ')
+        if (arrayBan[0] === '/ban' && arrayBan.length === 2 ) {
+            const usersInRoom = getUsersInRoom(user.room)
+            const potentUserBanned = usersInRoom.find((userInRoom) => userInRoom.username === arrayBan[1] )
+            if (potentUserBanned) {
+                var socketBannedUser = io.sockets.connected[potentUserBanned.id]
+                socketBannedUser.emit('bannedUser', { text: "Fuiste baneado del chat" })
+            }
+        }
+
+
+        //------------------COMMANDS IN CHAT (BAN) -----------------------------------
+
         //io.emit('message', generateMessage(message))   //We are sending to ALL the clients the message that was received
       
         //AQUI ES DONDE DEBES GUARDAR LOS MENSAJES-------------------------HOLAAAA
@@ -68,6 +83,20 @@ io.on('connection', (socket) => {
         }
 
         io.to(user.room).emit('message', generateMessage(user.username, message))  // 'io.to().emit'  -> That allow us to send a message to all the users(include the current user) of a SPECIFIC room
+      
+        //------------------COMMANDS IN CHAT (show all users) -----------------------------------
+        
+        stringGetEveryUser = message.trim()
+        if (stringGetEveryUser === '/allusers') {
+            const allUsers = getEveryUser()
+            allUsers.forEach(function(currentUser) {
+                io.to(user.room).emit('message', generateMessage('Admin', `${currentUser.username} is in the room called: ${currentUser.room}`))
+            })
+        }
+
+        //------------------COMMANDS IN CHAT (show all users) -----------------------------------
+
+        
         callback()   //We are running the acknowledgement function provided by the client, in order to know that we received the data, and we delivered the data.
     })
 
@@ -80,7 +109,7 @@ io.on('connection', (socket) => {
 
     //Wa wait that a user disconnect of the chat.
     socket.on('disconnect', () => {
-
+        console.log('Efectivamente corrio esta funcion')
         const user = removeUser(socket.id)  
 
         if (user) {
